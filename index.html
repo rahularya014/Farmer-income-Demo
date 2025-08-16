@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>L&T Finance — Farmer Income Prediction Model</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Using Montserrat as requested for a bold, clean look -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* --- Agrifarm Inspired Root Variables --- */
+        :root {
+            --fg: #ffffff; /* Foreground (text) color */
+            --bg-primary: #0a0a0a; /* Primary background color */
+            --bg-secondary: rgba(0,0,0,0.6); /* Slightly lighter background for cards */
+            --badge-bg: rgba(255,255,255,0.1); /* Badge background */
+            --badge-border: rgba(255,255,255,0.4); /* Badge border */
+            --accent: #0f6c26; /* Deep green accent for highlights/buttons */
+            --accent-light: #169e3a; /* Lighter accent for subtle gradients */
+            --border-light: rgba(255,255,255,0.08); /* Light borders for elements */
+            --overlay: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.5) 70%); /* Dark overlay for hero */
+
+            /* Custom properties for parallax effect, default to 0px */
+            --bg-transform-x: 0px;
+            --bg-transform-y: 0px;
+            --overlay-transform-x: 0px;
+            --overlay-transform-y: 0px;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: "Montserrat", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--fg);
+            background: var(--bg-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: var(--accent-light); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* --- Hero Section Styles (Main Visual Area) --- */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+            isolation: isolate;
+            padding: 20px; /* Add some padding for smaller screens */
+        }
+        .hero::before {
+            content: "";
+            position: absolute; inset: 0;
+            /* Using a placeholder image as the background for the hero section */
+            background: url("https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=2070&auto=format&fit=crop") center/cover no-repeat;
+            background-size: cover; /* Ensure background covers the area */
+            background-position: center; /* Center the background image */
+            z-index: -2;
+            /* Use CSS variables for translation and apply transition directly */
+            transform: scale(1.05) translate(var(--bg-transform-x), var(--bg-transform-y));
+            transition: transform 0.2s ease-out;
+        }
+        .hero::after {
+            content: "";
+            position: absolute; inset: 0;
+            background: var(--overlay);
+            z-index: -1;
+            /* Use CSS variables for translation and apply transition directly */
+            transform: scale(1.05) translate(var(--overlay-transform-x), var(--overlay-transform-y));
+            transition: transform 0.2s ease-out;
+        }
+
+        /* --- Header Badge --- */
+        .badge {
+            position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+            padding: 10px 18px;
+            border: 1.5px solid var(--badge-border);
+            border-radius: 999px;
+            background: var(--badge-bg);
+            backdrop-filter: blur(4px);
+            font-weight: 700; letter-spacing: .3px; font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        /* --- Main Title Styling --- */
+        .main-title {
+            margin: 0;
+            font-size: clamp(36px, 8vw, 120px); /* Responsive font size */
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 0.95;
+            text-transform: uppercase;
+            text-shadow: 0 6px 24px rgba(0,0,0,.35);
+        }
+        .sprout {
+            display: inline-block;
+            width: 0.6em; height: 0.6em;
+            background:
+                radial-gradient(circle at 50% 75%, #fff 25%, transparent 26%) 50% 0/100% 50% no-repeat,
+                linear-gradient(#fff,#fff) center/12% 100% no-repeat;
+            margin: 0 .12em;
+            transform: translateY(-0.08em);
+        }
+        .subtitle {
+            margin-top: 14px;
+            font-size: clamp(12px, 2.2vw, 22px);
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        /* --- Presented By Section --- */
+        .presented {
+            position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
+            font-size: 14px; opacity: 0.85;
+            z-index: 10; /* Ensure it's above other hero content */
+        }
+        .name { display: block; font-weight: 800; font-size: 18px; margin-top: 4px; }
+
+        /* --- Main Content Wrapper and General Layout --- */
+        .wrap {
+            max-width: 1140px; margin: 32px auto; padding: 24px;
+            position: relative; z-index: 2; /* Ensure content is above particles */
+        }
+
+        /* --- Card Styling --- */
+        .card {
+            background: var(--bg-secondary); /* Darker transparent background for cards */
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px; /* Space between sections */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            /* Reveal animation */
+            transform: translateY(12px); opacity:0;
+            transition:transform 600ms cubic-bezier(.2,.9,.25,1), opacity 600ms;
+        }
+        .card.visible { transform: translateY(0); opacity:1; }
+        .card h3 {
+            margin: 0 0 12px; font-size: 1.25rem; font-weight: 700;
+            color: var(--fg); /* White for card titles */
+        }
+        .card p, .card ul li { color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5; }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 12px 20px; border-radius: 8px; border: 0;
+            cursor: pointer; font-weight: 700; text-transform: uppercase;
+            background: var(--accent); color: var(--fg);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(0,0,0,0.35); }
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn.ghost {
+            background: transparent;
+            border: 1px solid var(--badge-border);
+            color: var(--fg);
+            box-shadow: none;
+        }
+        .smallBtn {
+            padding: 8px 12px; font-size: 0.85rem;
+            border: 1px solid var(--border-light);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.8);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .smallBtn:hover { transform: translateY(-2px); }
+
+        /* --- Form Elements --- */
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block; margin-bottom: 0.5rem;
+            color: var(--fg); font-weight: 600; font-size: 0.9rem;
+        }
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group input[type="text"] { /* Added text input */
+            width: 100%; padding: 0.75rem; border-radius: 8px;
+            border: 1px solid var(--border-light);
+            background-color: rgba(0,0,0,0.4); /* Slightly transparent input fields */
+            color: var(--fg); font-size: 1rem; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input[type="number"]:focus,
+        .form-group select:focus,
+        .form-group input[type="text"]:focus { /* Added text input */
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(15,108,38,0.3); /* Accent shadow */
+        }
+
+        /* --- Prediction Output & Loading --- */
+        .predict-output, .ai-output-box {
+            padding: 1rem; border-radius: 12px;
+            background-color: rgba(15,108,38,0.1); /* Light accent background */
+            border: 1px solid var(--accent);
+            color: var(--fg); font-size: 1.1rem; font-weight: 700;
+            text-align: center; min-height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; /* For vertical stacking of text and spinner */
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        .predict-output.error, .ai-output-box.error {
+            background-color: rgba(255, 0, 0, 0.1);
+            border-color: #FF6B6B;
+            color: #FF6B6B;
+        }
+        .loading-spinner, .ai-loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--accent-light);
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 0 auto;
+            margin-bottom: 10px; /* Space between spinner and text */
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Data Display & Metrics --- */
+        .metricRow { display: flex; align-items: baseline; gap: 10px; }
+        .metric { font-weight: 800; font-size: 2rem; color: var(--accent-light); }
+        .muted { color: rgba(255,255,255,0.6); font-size: 0.85rem; }
+
+        /* --- Grid Layouts --- */
+        .grid3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
+            gap: 16px; margin-top: 18px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px; margin-top: 16px;
+        }
+
+        /* --- Workflow Diagram Styling --- */
+        .workflow-diagram {
+            display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px;
+            margin-top: 20px;
+        }
+        .pipeline-step {
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            width: 160px; /* Adjusted width for better content display */
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border-light);
+            border-radius: 10px; padding: 15px;
+            min-height: 100px;
+            justify-content: center;
+        }
+        .pipeline-step h3 { font-size: 1rem; margin: 0 0 5px; color: var(--accent-light); }
+        .pipeline-step p { font-size: 0.8rem; margin: 0; }
+        .pipeline-arrow {
+            font-size: 2.2rem; color: var(--border-light);
+            align-self: center; margin: 0 10px;
+            display: none; /* Hidden by default for small screens */
+        }
+        @media (min-width: 768px) {
+            .pipeline-arrow { display: block; } /* Show arrows on wider screens */
+        }
+
+        /* --- Table Styling --- */
+        .model-comparison-table {
+            width: 100%; border-collapse: collapse; margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        .model-comparison-table th, .model-comparison-table td {
+            border: 1px solid var(--border-light);
+            padding: 12px 15px; text-align: left;
+        }
+        .model-comparison-table th {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--fg); font-weight: 700;
+        }
+        .model-comparison-table td {
+            background-color: rgba(0,0,0,0.2);
+            color: rgba(255,255,255,0.7);
+        }
+        .model-comparison-table tbody tr:hover {
+            background-color: rgba(255,255,255,0.03);
+        }
+        .model-performance-bar {
+            background-color: var(--accent);
+            color: var(--fg); padding: 4px 8px;
+            border-radius: 4px; text-align: center; font-weight: 600;
+        }
+
+        /* --- Footer --- */
+        footer {
+            margin-top: 32px; padding: 24px; text-align: center;
+            color: rgba(255,255,255,0.6); font-size: 0.8rem;
+            background: rgba(0,0,0,0.4);
+            border-top: 1px solid var(--border-light);
+            border-radius: 12px 12px 0 0;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero { padding-top: 80px; justify-content: flex-start; } /* Adjust hero for mobile */
+            .main-title { font-size: clamp(30px, 10vw, 60px); } /* Smaller title on mobile */
+            .subtitle { letter-spacing: 0.2em; font-size: 10px; }
+            .presented { bottom: 20px; font-size: 12px; }
+            .name { font-size: 16px; }
+            .cta-row { flex-direction: column; align-items: stretch; }
+            .card { padding: 15px; }
+            .card h3 { font-size: 1.1rem; }
+            .metric { font-size: 1.8rem; }
+            .chart-wrap { height: 180px; }
+            .pipeline-step { width: 100px; padding: 10px; } /* Smaller steps for mobile */
+        }
+    </style>
+</head>
+<body>
+    <header class="hero" role="banner" aria-label="L&T Finance farmer income prediction model cover">
+        <div class="badge">L&T FINANCE</div>
+
+        <div>
+            <h1 class="main-title">
+                FARMER<span class="sprout" aria-hidden="true"></span>INCOME
+            </h1>
+            <div class="subtitle">PREDICTION MODEL</div>
+        </div>
+
+        <div class="presented">
+            powered by
+            <span class="name">AI & Data Analytics</span>
+        </div>
+    </header>
+
+    <div class="wrap" role="main">
+        <section class="card" style="margin-top:-60px; position:relative; z-index:10; padding:30px;">
+            <h3 style="text-align:center; margin-bottom:20px; font-size:1.5rem;">Empowering Rural India Through Insight</h3>
+            <p style="text-align:center; max-width:800px; margin:0 auto; line-height:1.6;">L&T Finance is at the forefront of leveraging advanced machine learning to precisely predict farmer income. This initiative is pivotal in enabling more accurate credit assessment and fostering greater financial inclusion for the agricultural community. Explore the demo below to see our model in action.</p>
+        </section>
+
+        <section class="card">
+            <h3>Interactive Income Predictor</h3>
+            <p style="margin-bottom:20px;">
+                Enter details below to get an instant, simulated income prediction based on key factors.
+            </p>
+            <div class="form-group">
+                <label for="age">Age (years)</label>
+                <input type="number" id="age" min="18" max="100" value="35" required>
+            </div>
+            <div class="form-group">
+                <label for="education-level">Education Level</label>
+                <select id="education-level" required>
+                    <option value="0">No Education</option>
+                    <option value="1">Primary</option>
+                    <option value="2" selected>Secondary</option>
+                    <option value="3">Higher Secondary</option>
+                    <option value="4">Graduate</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="agricultural-land">Total Agricultural Land (hectares)</label>
+                <input type="number" id="agricultural-land" min="0" step="0.1" value="5" required>
+            </div>
+            <div class="form-group">
+                <label for="crop-yield">Crop Yield per Hectare (tons)</label>
+                <input type="number" id="crop-yield" min="0" step="0.1" value="10.2" required>
+            </div>
+            <div class="form-group">
+                <label for="non-agricultural-income">Non-Agricultural Income (₹)</label>
+                <input type="number" id="non-agricultural-income" min="0" value="12000" required>
+            </div>
+            <div class="form-group">
+                <label for="distance-to-market">Distance to Market (km)</label>
+                <input type="number" id="distance-to-market" min="0" step="0.5" value="15" required>
+            </div>
+
+            <button id="predict-income-btn" class="btn" style="width:100%; margin-top:15px;">Predict Income</button>
+
+            <div id="prediction-output" class="predict-output" style="margin-top:25px; display:none;">
+                <div id="prediction-loading" class="loading-spinner" style="display:none;"></div>
+                <span id="prediction-text"></span>
+            </div>
+        </section>
+
+        <section class="card" id="quickCard">
+            <h3>Quick Prediction Summary</h3>
+            <div class="metricRow" style="margin-top:15px;">
+                <div>
+                    <div class="muted">Predicted Income (Avg.)</div>
+                    <div class="metric" id="predictedIncome">—</div>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                    <div class="muted">Model Confidence</div>
+                    <div class="metric" id="confidence">—</div>
+                </div>
+            </div>
+            <div style="margin-top:20px;">
+                <div class="muted">L&T Action Recommendation</div>
+                <div style="font-weight:700; margin-top:8px; color:var(--accent-light);" id="recommend">—</div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3 style="margin-bottom:20px;">CSV File Operations</h3>
+            <div class="cta-row" style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <label class="btn" for="csvFile" id="uploadLabel" tabindex="0">Upload Farmer Data (CSV)</label>
+                <input type="file" id="csvFile" accept=".csv" style="display:none;" />
+                <button class="btn ghost" id="runBtn" disabled>Run Prediction Demo (CSV)</button>
+                <button class="smallBtn" id="sampleBtn" title="Download sample CSV">Download Sample Data</button>
+            </div>
+            <div class="muted" style="font-size:0.85rem; line-height:1.4;">Expected CSV columns (for demo): <em>FarmerID, Total_Land_For_Agriculture, Non_Agriculture_Income, DISTRICT, VILLAGE, rainfall_mm, yield_history, input_costs</em>. Demo runs locally in your browser.</div>
+        </section>
+
+        <section class="card">
+            <h3>Personalized AI Advice ✨</h3>
+            <p style="margin-bottom:20px;">
+                Get AI-powered, tailored financial advice based on the predicted income and model confidence.
+            </p>
+            <button id="generate-advice-btn" class="btn" style="width:100%;" disabled>Generate Personalized Advice ✨</button>
+            <div id="advice-output" class="ai-output-box" style="margin-top:20px;">
+                <p>Advice will appear here after a prediction and generation.</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>AI-Powered Crop Suggestion ✨</h3>
+            <p style="margin-bottom:20px;">
+                Get personalized crop recommendations and farming practices based on your predicted income and current farming profile.
+            </p>
+            <div class="form-group">
+                <label for="current-crop">Current Primary Crop (optional)</label>
+                <input type="text" id="current-crop" placeholder="e.g., Wheat, Rice, Cotton">
+            </div>
+            <div class="form-group">
+                <label for="region">Region/State (optional)</label>
+                <input type="text" id="region" placeholder="e.g., Punjab, Maharashtra">
+            </div>
+            <button id="generate-crop-suggestion-btn" class="btn" style="width:100%;" disabled>Generate Crop Suggestions ✨</button>
+            <div id="crop-suggestion-output" class="ai-output-box" style="margin-top:20px;">
+                <p>Crop suggestions will appear here.</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>AI-Powered Market Trend Analysis ✨</h3>
+            <p style="margin-bottom:20px;">
+                Receive an AI-generated overview of market price trends for specific crops and their potential impact on your income.
+            </p>
+            <div class="form-group">
+                <label for="market-crop">Crop for Analysis</label>
+                <input type="text" id="market-crop" placeholder="e.g., Wheat" required>
+            </div>
+            <button id="generate-market-trend-btn" class="btn" style="width:100%;">Analyze Market Trends ✨</button>
+            <div id="market-trend-output" class="ai-output-box" style="margin-top:20px;">
+                <p>Market trend analysis will appear here.</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>Simulated Income Trend Over Seasons</h3>
+            <div class="chart-wrap" style="height:280px; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:10px; padding:15px;">
+                <canvas id="trendChart" aria-label="A line chart showing simulated income trends over four seasons."></canvas>
+            </div>
+            <p class="muted" style="margin-top:15px; text-align:center;">This chart illustrates a simulated income trend based on predicted values, showcasing potential seasonal variations or growth.</p>
+        </section>
+
+        <!-- Static content sections remain unchanged -->
+        <section class="card">
+            <h3>Problem Background</h3>
+            <p>Access to credit is crucial for farmers to attain their full economic potential. Many struggle to get loans due to insufficient or non-existent credit histories, making them vulnerable to exploitative lenders.</p>
+            <p>L&T Finance aims to broaden financial inclusion by providing a positive and safe borrowing experience. Our advanced model assesses creditworthiness by leveraging diverse data sources to predict farmers' ability and willingness for repayment.</p>
+        </section>
+
+        <section class="card">
+            <h3>Key Data Resources Utilized</h3>
+            <p>Our model integrates a comprehensive set of data points to ensure robust and accurate predictions:</p>
+            <div class="info-grid">
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Farmer Demography & Land</h3>
+                    <ul>
+                        <li><span style="color:var(--accent-light);">•</span> Farmer ID, Location, Age, Education</li>
+                        <li><span style="color:var(--accent-light);">•</span> Landholding size (Total Agri Area)</li>
+                        <li><span style="color:var(--accent-light);">•</span> Living Index Indicators</li>
+                    </ul>
+                </div>
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Climatic Conditions</h3>
+                    <ul>
+                        <li><span style="color:var(--accent-light);">•</span> Temperature, Humidity, Rainfall (Seasonal Average)</li>
+                        <li><span style="color:var(--accent-light);">•</span> Sunshine Hours, Wind Speed, Thunderstorm data</li>
+                        <li><span style="color:var(--accent-light);">•</span> Groundwater Replenishment & Thickness</li>
+                    </ul>
+                </div>
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Crop & Market Dynamics</h3>
+                    <ul>
+                        <li><span style="color:var(--accent-light);">•</span> Crop Type, Area Planted, Historical Yield</li>
+                        <li><span style="color:var(--accent-light);">•</span> Commodity Price Dynamics</li>
+                        <li><span style="color:var(--accent-light);">•</span> Agricultural Scores per season</li>
+                    </ul>
+                </div>
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Infrastructure & Financial</h3>
+                    <ul>
+                        <li><span style="color:var(--accent-light);">•</span> Road Density, Proximity to Mandi</li>
+                        <li><span style="color:var(--accent-light);">•</span> Households with improved sanitation/electricity</li>
+                        <li><span style="color:var(--accent-light);">•</span> Non-Agriculture Income sources</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="muted" style="margin-top:20px; text-align:center;">We also encourage the use of alternate public or private data sources to further enhance model performance.</p>
+        </section>
+
+        <section class="card">
+            <h3>Our Robust Model Pipeline</h3>
+            <p>Our state-of-the-art machine learning model follows a rigorous pipeline to ensure high accuracy and reliability.</p>
+            <div class="workflow-diagram">
+                <div class="pipeline-step"><h3>1. Raw Data</h3><p>Initial dataset.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>2. Data Cleaning</h3><p>Handling missing values.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>3. Outlier Removal</h3><p>Stabilize dataset.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>4. Feature Eng.</h3><p>Creating new features.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>5. Feature Sel.</h3><p>Lasso Regression.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>6. Model Opt.</h3><p>Hyperparameter tuning.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>7. Adv. Modeling</h3><p>Combining models.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>8. Expert Eng.</h3><p>Final enhancements.</p></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>Model Architecture & Performance</h3>
+            <p>Our model utilizes an ensemble approach, combining the strengths of multiple algorithms to deliver highly accurate predictions.</p>
+            <table class="model-comparison-table">
+                <thead>
+                    <tr>
+                        <th>Model Component</th>
+                        <th>Purpose</th>
+                        <th>Contribution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>XGBoost</strong> (Base Model)</td>
+                        <td>Capturing complex patterns.</td>
+                        <td><div class="model-performance-bar" style="width: 75%;">75%</div></td>
+                    </tr>
+                    <tr>
+                        <td><strong>LightGBM</strong> (Base Model)</td>
+                        <td>Fast and efficient processing.</td>
+                        <td><div class="model-performance-bar" style="width: 25%;">25%</div></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ridge Regression</strong> (Base Model)</td>
+                        <td>Stable predictions for linear relationships.</td>
+                        <td><div class="model-performance-bar" style="width: 5%;">5%</div></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Weighted Ensemble</strong></td>
+                        <td>Combines predictions based on optimized weights.</td>
+                        <td>Optimizes overall predictive power.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Error Correction Model</strong></td>
+                        <td>Corrects errors in combined output.</td>
+                        <td>Further refines prediction.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top:20px;">
+                Through systematic optimization and feature engineering, our model achieves a <strong>Mean Absolute Percentage Error (MAPE)</strong> below 10% and captures over 78% of income variance, demonstrating industry-leading performance in agricultural prediction analytics.
+            </p>
+        </section>
+
+        <section class="card">
+            <h3>Deployment & Operationalization Plan</h3>
+            <p>The farmer income prediction model is designed for seamless integration into existing business applications, providing actionable insights where they are needed most.</p>
+            <div class="workflow-diagram">
+                <div class="pipeline-step"><h3>1. New Farmer Data</h3><p>Collected via applications.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>2. Automated Pipeline</h3><p>Cleaning & feature engineering.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>3. Processed Features</h3><p>Ready for model input.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>4. Prediction API</h3><p>Access to prediction models.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>5. Final Ensemble</h3><p>Generates income & risk scores.</p></div>
+                <div class="pipeline-arrow">&#x2192;</div>
+                <div class="pipeline-step"><h3>6. Business Integration</h3><p>Into software & dashboards.</p></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>Strategic Roadmap for Future Growth</h3>
+            <p>Our commitment to continuous improvement guides the evolution of our prediction capabilities.</p>
+            <div class="info-grid">
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Capture Income Variance</h3>
+                    <p class="muted">Model aims to capture even more significant income variance, improving granularity of predictions.</p>
+                </div>
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Integrate Satellite Data</h3>
+                    <p class="muted">Leverage satellite imagery for real-time crop health and yield estimation.</p>
+                </div>
+                <div class="info-item card" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;">
+                    <h3>Expand Data Sources</h3>
+                    <p class="muted">Incorporate new public and private datasets to enhance predictive accuracy and robustness.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>&copy; 2024 L&T Finance. All Rights Reserved. This is a demonstration model for illustrative purposes.</p>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- STATE MANAGEMENT ---
+    // A simple object to hold the current state of the prediction.
+    const predictionState = {
+        income: null,
+        confidence: null,
+    };
+
+    // --- UI ELEMENTS ---
+    const hero = document.querySelector('.hero');
+    const cards = document.querySelectorAll('.card');
+    const predictedIncomeEl = document.getElementById('predictedIncome');
+    const confidenceEl = document.getElementById('confidence');
+    const recommendEl = document.getElementById('recommend');
+    const trendChartCanvas = document.getElementById('trendChart');
+    let trendChart = null; // To hold the Chart.js instance
+
+    // CSV Elements
+    const csvFileInput = document.getElementById('csvFile');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const runCsvBtn = document.getElementById('runBtn');
+    const downloadSampleBtn = document.getElementById('sampleBtn');
+
+    // Interactive Predictor Elements
+    const predictIncomeBtn = document.getElementById('predict-income-btn');
+    const predictionOutput = document.getElementById('prediction-output');
+    const predictionText = document.getElementById('prediction-text');
+    const predictionLoading = document.getElementById('prediction-loading');
+
+    // AI Feature Elements
+    const generateAdviceBtn = document.getElementById('generate-advice-btn');
+    const adviceOutput = document.getElementById('advice-output');
+    const generateCropBtn = document.getElementById('generate-crop-suggestion-btn');
+    const cropOutput = document.getElementById('crop-suggestion-output');
+    const generateMarketTrendBtn = document.getElementById('generate-market-trend-btn');
+    const marketTrendOutput = document.getElementById('market-trend-output');
+
+
+    // --- PARALLAX EFFECT ---
+    // This effect moves the background image slightly in response to mouse movement.
+    const parallaxEffect = (e) => {
+        const { clientX, clientY } = e;
+        const { offsetWidth, offsetHeight } = hero;
+        const x = (clientX / offsetWidth - 0.5) * 30; // Multiplier controls effect intensity
+        const y = (clientY / offsetHeight - 0.5) * 30;
+        
+        // Using CSS variables to update the transform properties
+        document.documentElement.style.setProperty('--bg-transform-x', `${-x}px`);
+        document.documentElement.style.setProperty('--bg-transform-y', `${-y}px`);
+        document.documentElement.style.setProperty('--overlay-transform-x', `${-x / 2}px`);
+        document.documentElement.style.setProperty('--overlay-transform-y', `${-y / 2}px`);
+    };
+    window.addEventListener('mousemove', parallaxEffect);
+
+
+    // --- SCROLL REVEAL ANIMATION ---
+    // This reveals cards as they are scrolled into view.
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    cards.forEach(card => revealObserver.observe(card));
+
+
+    // --- HELPER FUNCTIONS ---
+    // Formats a number into Indian Rupee currency format.
+    const formatCurrency = (value) => `₹ ${new Intl.NumberFormat('en-IN').format(value)}`;
+
+    // Simulates a delay, like a real API call.
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Updates the main summary card with new prediction data.
+    const updateSummaryCard = (income, confidence) => {
+        predictionState.income = income;
+        predictionState.confidence = confidence;
+
+        predictedIncomeEl.textContent = formatCurrency(income);
+        confidenceEl.textContent = `${confidence}%`;
+
+        if (income > 250000) {
+            recommendEl.textContent = "High potential. Eligible for premium loan products.";
+        } else if (income > 100000) {
+            recommendEl.textContent = "Good potential. Standard loan products recommended.";
+        } else {
+            recommendEl.textContent = "Further assessment needed. Consider micro-financing options.";
+        }
+        
+        // Enable AI buttons now that we have data
+        generateAdviceBtn.disabled = false;
+        generateCropBtn.disabled = false;
+    };
+
+
+    // --- CHART.JS VISUALIZATION ---
+    // Initializes or updates the seasonal income trend chart.
+    const updateTrendChart = (baseIncome) => {
+        const ctx = trendChartCanvas.getContext('2d');
+        if (trendChart) {
+            trendChart.destroy(); // Destroy old chart instance before creating a new one
+        }
+
+        // Simulate seasonal data based on the predicted income
+        const chartData = [
+            baseIncome * 0.8, // Season 1
+            baseIncome * 1.2, // Season 2 (peak)
+            baseIncome * 0.9, // Season 3
+            baseIncome * 1.05, // Season 4
+        ];
+
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Season 1', 'Season 2', 'Season 3', 'Season 4'],
+                datasets: [{
+                    label: 'Simulated Income',
+                    data: chartData,
+                    borderColor: 'var(--accent-light)',
+                    backgroundColor: 'rgba(22, 158, 58, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: { 
+                            color: 'rgba(255,255,255,0.7)',
+                            callback: value => formatCurrency(value) 
+                        },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        ticks: { color: 'rgba(255,255,255,0.7)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `Income: ${formatCurrency(context.raw)}`
+                        }
+                    }
+                }
+            }
+        });
+    };
+    // Initialize chart with default data
+    updateTrendChart(150000);
+
+
+    // --- CSV OPERATIONS ---
+    csvFileInput.addEventListener('change', () => {
+        if (csvFileInput.files.length > 0) {
+            const fileName = csvFileInput.files[0].name;
+            uploadLabel.textContent = fileName.length > 20 ? `${fileName.substring(0, 17)}...` : fileName;
+            runCsvBtn.disabled = false;
+        } else {
+            uploadLabel.textContent = 'Upload Farmer Data (CSV)';
+            runCsvBtn.disabled = true;
+        }
+    });
+
+    downloadSampleBtn.addEventListener('click', () => {
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + "FarmerID,Total_Land_For_Agriculture,Non_Agriculture_Income,DISTRICT,VILLAGE,rainfall_mm,yield_history,input_costs\n"
+            + "F001,5,12000,PUNE,KHED,800,10.2,50000\n"
+            + "F002,8,5000,NASHIK,IGATPURI,1200,8.5,75000\n"
+            + "F003,3,25000,SATARA,KARAD,950,12.1,30000\n";
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "sample_farmer_data.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    runCsvBtn.addEventListener('click', async () => {
+        // This is a simulation. In a real app, you would parse the CSV
+        // and send the data to a backend for prediction.
+        runCsvBtn.textContent = 'Processing...';
+        runCsvBtn.disabled = true;
+        await sleep(1500); // Simulate processing time
+
+        // Simulate an average prediction from the CSV data
+        const simulatedAvgIncome = Math.floor(Math.random() * (300000 - 150000 + 1)) + 150000;
+        const simulatedConfidence = Math.floor(Math.random() * (95 - 88 + 1)) + 88;
+
+        updateSummaryCard(simulatedAvgIncome, simulatedConfidence);
+        updateTrendChart(simulatedAvgIncome);
+
+        runCsvBtn.textContent = 'Run Prediction Demo (CSV)';
+        runCsvBtn.disabled = false;
+        
+        // Scroll to the summary card to show the result
+        document.getElementById('quickCard').scrollIntoView({ behavior: 'smooth' });
+    });
+
+
+    // --- INTERACTIVE PREDICTOR ---
+    predictIncomeBtn.addEventListener('click', async () => {
+        // Show loading state
+        predictionOutput.style.display = 'flex';
+        predictionText.textContent = '';
+        predictionLoading.style.display = 'block';
+        predictIncomeBtn.disabled = true;
+
+        await sleep(1500); // Simulate model prediction time
+
+        // Get values from the form
+        const land = parseFloat(document.getElementById('agricultural-land').value) || 0;
+        const yieldVal = parseFloat(document.getElementById('crop-yield').value) || 0;
+        const nonAgriIncome = parseFloat(document.getElementById('non-agricultural-income').value) || 0;
+
+        // Simple simulation formula
+        const baseIncome = (land * yieldVal * 15000) + nonAgriIncome; // 15000 is a mock price/ton
+        const randomFactor = 1 + (Math.random() - 0.5) * 0.2; // +/- 10% variance
+        const finalIncome = Math.round(baseIncome * randomFactor);
+        const confidence = Math.floor(Math.random() * (96 - 87 + 1)) + 87;
+
+        // Update UI
+        predictionLoading.style.display = 'none';
+        predictionText.textContent = `Predicted Annual Income: ${formatCurrency(finalIncome)}`;
+        predictIncomeBtn.disabled = false;
+
+        // Update summary and chart
+        updateSummaryCard(finalIncome, confidence);
+        updateTrendChart(finalIncome);
+    });
+    
+    // --- GEMINI API INTEGRATION ---
+    const API_KEY = ""; // Leave empty, will be handled by the environment
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+
+    /**
+     * A generic function to call the Gemini API with exponential backoff.
+     * @param {string} prompt - The prompt to send to the model.
+     * @param {HTMLElement} outputEl - The element to display the result in.
+     * @param {HTMLElement} buttonEl - The button that triggered the call.
+     */
+    async function callGeminiApi(prompt, outputEl, buttonEl) {
+        buttonEl.disabled = true;
+        outputEl.classList.remove('error');
+        outputEl.innerHTML = `<div class="ai-loading-spinner"></div><p>Generating... Please wait.</p>`;
+
+        let retries = 3;
+        let delay = 1000;
+
+        while (retries > 0) {
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    outputEl.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`; // Basic formatting
+                    buttonEl.disabled = false;
+                    return; // Success, exit the loop
+                } else {
+                    throw new Error("Invalid response structure from API.");
+                }
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                retries--;
+                if (retries === 0) {
+                    outputEl.classList.add('error');
+                    outputEl.innerHTML = `<p>An error occurred while generating the response. Please try again later.</p>`;
+                    buttonEl.disabled = false;
+                } else {
+                    await sleep(delay);
+                    delay *= 2; // Exponential backoff
+                }
+            }
+        }
+    }
+
+    // Event listener for generating financial advice
+    generateAdviceBtn.addEventListener('click', () => {
+        if (!predictionState.income) {
+            adviceOutput.classList.add('error');
+            adviceOutput.innerHTML = `<p>Please run a prediction first to get advice.</p>`;
+            return;
+        }
+        const prompt = `You are a financial advisor for L&T Finance, specializing in rural agriculture in India. A farmer's predicted annual income is ${formatCurrency(predictionState.income)} with a model confidence of ${predictionState.confidence}%. Based on this, provide 2-3 clear, actionable financial recommendations. Focus on savings, smart investments for farming (like equipment or better seeds), and loan eligibility. Keep the tone encouraging and straightforward. Format the output as a simple paragraph.`;
+        callGeminiApi(prompt, adviceOutput, generateAdviceBtn);
+    });
+
+    // Event listener for generating crop suggestions
+    generateCropBtn.addEventListener('click', () => {
+         if (!predictionState.income) {
+            cropOutput.classList.add('error');
+            cropOutput.innerHTML = `<p>Please run a prediction first to get crop suggestions.</p>`;
+            return;
+        }
+        const currentCrop = document.getElementById('current-crop').value || 'their current crop';
+        const region = document.getElementById('region').value || 'their region';
+        const landSize = document.getElementById('agricultural-land').value || 'their';
+
+        const prompt = `You are an agricultural expert for L&T Finance in India. A farmer in the ${region} region, currently growing ${currentCrop}, has a predicted annual income of ${formatCurrency(predictionState.income)}. Based on their land size of ${landSize} hectares, suggest 2 alternative or complementary crops that could improve profitability. For each suggestion, briefly explain the benefits (e.g., market demand, soil suitability for the region, lower input costs). Format as a short, easy-to-read paragraph.`;
+        callGeminiApi(prompt, cropOutput, generateCropBtn);
+    });
+
+    // Event listener for generating market trend analysis
+    generateMarketTrendBtn.addEventListener('click', () => {
+        const crop = document.getElementById('market-crop').value;
+        if (!crop) {
+            marketTrendOutput.classList.add('error');
+            marketTrendOutput.innerHTML = `<p>Please enter a crop name for analysis.</p>`;
+            return;
+        }
+        const prompt = `You are a market analyst for L&T Finance. Provide a brief market trend analysis for ${crop} in India for the upcoming season. Mention potential price fluctuations, demand drivers, and one key piece of advice for a farmer growing this crop. Keep it concise, under 100 words, and easy to understand.`;
+        callGeminiApi(prompt, marketTrendOutput, generateMarketTrendBtn);
+    });
+});
+</script>
+</body>
+</html>
